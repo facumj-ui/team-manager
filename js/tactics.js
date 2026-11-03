@@ -69,7 +69,7 @@ function renderRosterTable() {
           ${p.dorsal}
         </span>
         <span class="font-bold text-white truncate max-w-[105px]">${esc(p.name)}</span>
-        ${typeof getEstimulosBadgeHtml === 'function' ? getEstimulosBadgeHtml(p.id) : ''}
+        
       </td>
       <td class="py-2 text-center font-bold ${p.pos === 'C' ? 'text-amber-400' : 'text-blue-400'}">${p.pos}</td>
       <td class="py-2 text-center text-gray-300 font-semibold">${(p.stats.MIN || 0).toFixed(1)}'</td>
@@ -136,7 +136,7 @@ function renderReserves() {
           ${p.dorsal}
         </span>
         <span class="font-bold text-gray-200 truncate max-w-[105px]">${esc(p.name)}</span>
-        ${typeof getEstimulosBadgeHtml === 'function' ? getEstimulosBadgeHtml(p.id) : ''}
+        
       </td>
       <td class="py-2 text-center font-bold ${p.pos === 'C' ? 'text-amber-400' : 'text-blue-400'}">${p.pos}</td>
       <td class="py-2 text-center text-gray-300 font-semibold">${(p.stats.MIN || 0).toFixed(1)}'</td>
@@ -447,9 +447,7 @@ function openPlayerModal(id) {
   document.getElementById('modalPlayerName').innerText = p.name;
   document.getElementById('modalDorsalCircle').innerText = '#' + p.dorsal;
   document.getElementById('modalEditPos').value = p.pos;
-  if (document.getElementById('modalEditCat')) {
-    document.getElementById('modalEditCat').value = (p.cat === 'OTHER') ? 'OTHER' : 'MAIN';
-  }
+
   document.getElementById('modalEditDorsal').value = p.dorsal;
   updateModalStatusButtons(p.status);
 
@@ -517,17 +515,6 @@ function closePlayerModal() {
   const modal = document.getElementById('playerModal');
   if (modal) modal.classList.add('hidden');
   state.activeModalPlayerId = null;
-}
-function updatePlayerCatFromModal(newCat) {
-  if (!state.activeModalPlayerId) return;
-  const p = state.roster.find(x => x.id === state.activeModalPlayerId);
-  if (!p) return;
-  
-  p.cat = newCat;
-  if (typeof saveRosterState === 'function') saveRosterState();
-  
-  renderRosterTable();
-  if (typeof renderTrainingTable === 'function') renderTrainingTable();
 }
 
 function updateRecAverages() {

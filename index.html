@@ -39,9 +39,6 @@
       <button onclick="switchTab('scouting')" id="tab-scouting" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">
         <i class="fa-solid fa-chart-column mr-1.5"></i> Scouting General
       </button>
-      <button onclick="switchTab('entrenamientos')" id="tab-entrenamientos" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">
-        <i class="fa-solid fa-dumbbell mr-1.5"></i> Estímulos Semanales
-      </button>
     </div>
 
     <!-- BOTONES DE ACCIÓN -->
@@ -449,85 +446,7 @@
       </div>
     </div>
 
-    <!-- PESTAÑA 4: ESTÍMULOS SEMANALES & ASISTENCIAS -->
-    <div id="view-entrenamientos" class="hidden space-y-4">
-      <div class="fm-card rounded-2xl p-5 shadow-2xl border border-purple-800/80">
-        
-        <!-- CABECERA CON SELECTOR DE SEMANA, FILTRO DE CATEGORÍA Y RESUMEN -->
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-purple-900/60">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl p-2 rounded-xl bg-purple-950 border border-purple-800">⚡</span>
-            <div>
-              <h2 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">Control de Estímulos Semanales</h2>
-              <p id="trainingRule" class="text-xs text-gray-400"></p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <!-- FILTRO DE CATEGORÍA -->
-            <label class="text-xs font-bold text-gray-300">Filtrar:</label>
-            <select id="trainingCatFilterSelect" onchange="handleTrainingCatFilterChange(this.value)" class="bg-[#110620] border border-purple-800 rounded-xl px-2.5 py-1.5 text-xs font-bold text-blue-300 focus:outline-none cursor-pointer">
-              <option value="MAIN">Plantel principal (exigibles)</option>
-              <option value="OTHER">Juegan en otra categoría</option>
-              <option value="ALL">Todas las jugadoras</option>
-            </select>
-
-            <label class="text-xs font-bold text-gray-300 ml-2">Semana:</label>
-            <select id="trainingWeekSelect" onchange="handleTrainingWeekChange(this.value)" class="bg-[#110620] border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 focus:outline-none cursor-pointer">
-              <option value="Semana 1">Semana 1</option>
-            </select>
-            <button onclick="createNewTrainingWeek()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow transition flex items-center gap-1">
-              <i class="fa-solid fa-plus"></i> Nueva Semana
-            </button>
-            <button onclick="clearCurrentWeekEstimulos()" class="px-2.5 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-800 text-xs shadow transition" title="Reiniciar semana actual">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- PASTILLAS DE RESUMEN COLECTIVO -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-          <div class="bg-[#110620] p-3 rounded-xl border border-purple-900/60 text-xs">
-            <span class="text-gray-400 font-bold uppercase text-[10px]">Jugadoras con piso cumplido</span>
-            <div class="text-base font-black text-emerald-400 mt-0.5" id="trainingStatsCumplieron">0 / 21 (0%)</div>
-          </div>
-          <div class="bg-[#110620] p-3 rounded-xl border border-purple-900/60 text-xs">
-            <span class="text-gray-400 font-bold uppercase text-[10px]">Promedio de Estímulos del Plantel</span>
-            <div class="text-base font-black text-blue-400 mt-0.5" id="trainingStatsAvg">0.0 turnos / jugadora</div>
-          </div>
-          <div class="bg-[#110620] p-3 rounded-xl border border-purple-900/60 text-xs">
-            <span class="text-gray-400 font-bold uppercase text-[10px]">Guía de Uso Rápido</span>
-            <div class="text-gray-300 text-[11px] mt-0.5">
-              1 toque = <b>1 turno</b> (verde) • 2 toques = <b>Doble turno</b> (violeta) • 3 toques = <b>Triple turno</b> (dorado)
-            </div>
-          </div>
-        </div>
-
-        <!-- TABLA DE JUGADORAS (LUNES A VIERNES) -->
-        <div class="overflow-x-auto rounded-xl border border-purple-900/60">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="text-[11px] text-gray-300 uppercase bg-[#160a29] border-b border-purple-900">
-                <th class="py-2.5 px-3">Jugadora</th>
-                <th class="py-2 px-1 text-center w-12">LUN</th>
-                <th class="py-2 px-1 text-center w-12">MAR</th>
-                <th class="py-2 px-1 text-center w-12">MIÉ</th>
-                <th class="py-2 px-1 text-center w-12">JUE</th>
-                <th class="py-2 px-1 text-center w-12">VIE</th>
-                <th class="py-2 px-2 text-center w-24">Total</th>
-                <th class="py-2 px-3 text-center w-28">Estado</th>
-              </tr>
-            </thead>
-            <tbody id="trainingTableBody" class="divide-y divide-purple-950/70 bg-[#110620]"></tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-    </div>
-  </main>
-
-  <!-- MODAL DE JUGADORA ACTUALIZADO CON SELECTOR DE CATEGORÍA -->
+    <!-- MODAL DE JUGADORA ACTUALIZADO CON SELECTOR DE CATEGORÍA -->
   <div id="playerModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="fm-card rounded-2xl w-full max-w-lg p-5 border border-purple-700 shadow-2xl space-y-4">
       
@@ -547,13 +466,6 @@
                 <option value="SF">SF (Alero)</option>
                 <option value="PF">PF (Ala-Pívot)</option>
                 <option value="C">C (Pívot)</option>
-              </select>
-
-              <!-- SELECTOR DE CATEGORÍA -->
-              <label class="text-[11px] text-gray-400 ml-1.5">Cat:</label>
-              <select id="modalEditCat" onchange="updatePlayerCatFromModal(this.value)" class="bg-[#110620] border border-purple-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold focus:outline-none focus:border-blue-400">
-                <option value="MAIN">Principal</option>
-                <option value="OTHER">Otra categoría</option>
               </select>
 
               <label class="text-[11px] text-gray-400 ml-1.5">Camiseta:</label>
@@ -665,8 +577,6 @@
         <div><label class="block text-[11px] text-gray-400 mb-1">Puntos por derrota</label><input id="sLoss" type="number" min="0" max="9" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
         <div><label class="block text-[11px] text-gray-400 mb-1">Equipos que clasifican a playoffs</label><input id="sPlayoff" type="number" min="1" max="32" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
         <div></div>
-        <div><label class="block text-[11px] text-gray-400 mb-1">Turnos mínimos por semana</label><input id="sMin" type="number" min="0" max="20" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
-        <div><label class="block text-[11px] text-gray-400 mb-1">Alerta si supera (turnos)</label><input id="sMax" type="number" min="1" max="30" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
       </div>
       <div class="flex flex-wrap gap-2 pt-1 text-xs">
         <button onclick="if(confirm('¿Rearmar el plantel con las reglas por defecto? Se pierden tus cambios de puestos, titulares y citadas.')){closeSettings();autoSetupRoster();}" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 font-bold">Rearmar plantel automático</button>
@@ -689,10 +599,9 @@
   <script src="js/depth.js"></script>
   <script src="js/scouting.js"></script>
   <script src="js/import.js"></script>
-  <script src="js/training.js"></script>
   <script>
     function switchTab(tab) {
-      ['torneo', 'tactica', 'profundidad', 'scouting', 'entrenamientos'].forEach(t => {
+      ['torneo', 'tactica', 'profundidad', 'scouting'].forEach(t => {
         const viewEl = document.getElementById('view-' + t);
         const tabEl = document.getElementById('tab-' + t);
         if (viewEl) viewEl.classList.add('hidden');
@@ -705,7 +614,6 @@
       if (activeTab) activeTab.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition";
 
       if (tab === 'profundidad') { renderDepthChart(); const b = document.getElementById('depthTeamBadge'); if (b) b.innerText = state.myTeam; }
-      if (tab === 'entrenamientos') renderTrainingTable();
       if (tab === 'scouting') {
         renderScoutingTable();
         const oppSelect = document.getElementById('scoutNextOpponentSelect');

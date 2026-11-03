@@ -211,8 +211,6 @@ function updateHeader() {
   if (ps) ps.innerHTML = `<span class="text-gray-400">Sistema:</span> <b class="text-emerald-400">${state.settings.ptsWin} pts victoria / ${state.settings.ptsLoss} pts derrota</b> · <span class="text-blue-400 font-bold">Top ${state.settings.playoffSpots}</span> a playoffs`;
   const lg = document.getElementById('playoffLegend');
   if (lg) lg.innerText = `1° - ${state.settings.playoffSpots}° a Playoffs`;
-  const trRule = document.getElementById('trainingRule');
-  if (trRule) trRule.innerText = `Regla: mínimo ${state.settings.minTurns} turnos para citación • Alerta roja si supera los ${state.settings.maxTurns} turnos.`;
   const sw = document.getElementById('wsSwitcher');
   if (sw) {
     const idx = listWorkspaces();
@@ -231,9 +229,7 @@ function openSettings() {
   document.getElementById('sWin').value = state.settings.ptsWin;
   document.getElementById('sLoss').value = state.settings.ptsLoss;
   document.getElementById('sPlayoff').value = state.settings.playoffSpots;
-  document.getElementById('sMin').value = state.settings.minTurns;
-  document.getElementById('sMax').value = state.settings.maxTurns;
-  document.getElementById('settingsModal').classList.remove('hidden');
+    document.getElementById('settingsModal').classList.remove('hidden');
 }
 function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
 
@@ -243,8 +239,7 @@ function saveSettings() {
   state.category = document.getElementById('sCategory').value.trim();
   const newTeam = document.getElementById('sTeam').value;
   state.settings = {
-    ptsWin: num('sWin', 2, 0, 9), ptsLoss: num('sLoss', 1, 0, 9), playoffSpots: num('sPlayoff', 8, 1, 32),
-    minTurns: num('sMin', 3, 0, 20), maxTurns: num('sMax', 6, 1, 30)
+    ptsWin: num('sWin', 2, 0, 9), ptsLoss: num('sLoss', 1, 0, 9), playoffSpots: num('sPlayoff', 8, 1, 32)
   };
   const teamChanged = newTeam && newTeam !== state.myTeam;
   if (teamChanged) state.myTeam = newTeam;

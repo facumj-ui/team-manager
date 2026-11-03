@@ -83,7 +83,6 @@ function applyWorkspace(ws) {
   state.training = ws.training || {};
   state.selectedSwapId = null;
   state.activeModalPlayerId = null;
-  if (typeof initTrainingData === 'function') initTrainingData();
   rebuildDerived();
 }
 
