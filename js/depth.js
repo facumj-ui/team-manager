@@ -1,3 +1,12 @@
+// Orden de una columna de la tabla de profundidad: activas por jerarquía, lesionadas al fondo e inactivas al final (ocultas).
+const DEPTH_STATUS_RANK = { ACT: 0, LES: 1, INA: 2 };
+function depthColumn(pos, excludeId) {
+  return state.roster
+    .filter(p => p.pos === pos && p.id !== excludeId)
+    .sort((a, b) => ((DEPTH_STATUS_RANK[a.status] || 0) - (DEPTH_STATUS_RANK[b.status] || 0)) || ((a.depth || 99) - (b.depth || 99)));
+}
+const isHiddenInDepth = p => p.status === 'INA';
+
 function renderDepthChart() {
   const grid = document.getElementById('depthChartGrid');
   if (!grid) return;
@@ -46,9 +55,9 @@ function renderDepthChart() {
     grid.appendChild(col);
 
     // Filtrar jugadoras por puesto
-    const colPlayers = state.roster
-      .filter(p => p.pos === colInfo.key)
-      .sort((a, b) => (a.depth || 1) - (b.depth || 1));
+    const colAll = depthColumn(colInfo.key);
+    colAll.forEach((p, i) => { p.depth = i + 1; });
+    const colPlayers = colAll.filter(p => !isHiddenInDepth(p));
 
     const countEl = col.querySelector(`#count-${colInfo.key}`);
     if (countEl) countEl.innerText = colPlayers.length;
@@ -58,7 +67,6 @@ function renderDepthChart() {
     }
 
     colPlayers.forEach((p, idx) => {
-      p.depth = idx + 1; // Jerarquía estricta 1, 2, 3...
       const item = document.createElement('div');
       item.draggable = true;
       item.setAttribute('data-id', p.id);
@@ -113,7 +121,8 @@ function renderDepthChart() {
             ? '<span class="text-emerald-400 font-bold text-[10px]">TITULAR</span>' 
             : (p.isConvocada ? '<span class="text-gray-400 font-semibold text-[10px]">BANCO</span>' : '<span class="text-purple-400/60 font-semibold text-[10px]">RESERVA</span>'));
 
-      item.className = `p-2.5 rounded-xl border cursor-grab active:cursor-grabbing transition shadow ${isTitular ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/50' : (p.isConvocada ? 'bg-[#180c2e] border-purple-800/80 hover:border-purple-600' : 'bg-[#10061e] border-purple-950/60 opacity-60 hover:opacity-100')}`;
+      const injured = p.status === 'LES';
+      item.className = `${injured ? 'opacity-50 ' : ''}p-2.5 rounded-xl border cursor-grab active:cursor-grabbing transition shadow ${isTitular ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/50' : (p.isConvocada ? 'bg-[#180c2e] border-purple-800/80 hover:border-purple-600' : 'bg-[#10061e] border-purple-950/60 opacity-60 hover:opacity-100')}`;
       
       item.innerHTML = `
         <div class="flex items-center justify-between text-xs font-bold text-white mb-1">
@@ -152,9 +161,7 @@ function handleReorderDepth(draggedId, targetId, targetPos, insertBefore) {
 
   dragged.pos = targetPos;
 
-  let colPlayers = state.roster
-    .filter(p => p.pos === targetPos && p.id !== dragged.id)
-    .sort((a, b) => (a.depth || 1) - (b.depth || 1));
+  let colPlayers = depthColumn(targetPos, dragged.id);
 
   const targetIdx = colPlayers.findIndex(p => p.id === target.id);
   const insertIdx = insertBefore ? targetIdx : targetIdx + 1;
@@ -193,10 +200,7 @@ function handleDropOnDepthColumn(draggedId, targetPos) {
 
   if (dragged.pos !== targetPos) {
     dragged.pos = targetPos;
-    const targetCol = state.roster
-      .filter(x => x.pos === targetPos && x.id !== dragged.id)
-      .sort((a, b) => (a.depth || 1) - (b.depth || 1));
-    dragged.depth = targetCol.length + 1;
+    dragged.depth = depthColumn(targetPos, dragged.id).length + 1;
   }
 
   // AUTO GUARDADO PERMANENTE
@@ -213,11 +217,12 @@ const DEPTH_ORDER = ['PG', 'SG', 'SF', 'PF', 'C'];
 function shiftDepthPlayer(id, d) {
   const p = state.roster.find(x => x.id === id);
   if (!p) return;
-  const col = state.roster.filter(x => x.pos === p.pos).sort((a, b) => (a.depth || 1) - (b.depth || 1));
+  const full = depthColumn(p.pos);
+  const col = full.filter(x => !isHiddenInDepth(x));
   const i = col.indexOf(p), j = i + d;
   if (j < 0 || j >= col.length) return;
   [col[i], col[j]] = [col[j], col[i]];
-  col.forEach((x, k) => x.depth = k + 1);
+  col.concat(full.filter(isHiddenInDepth)).forEach((x, k) => x.depth = k + 1);
   saveRosterState();
   renderDepthChart();
   renderRosterTable();
