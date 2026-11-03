@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="min-h-screen flex flex-col text-xs sm:text-sm">
+
+  <!-- BARRA SUPERIOR -->
+  <header class="fm-header px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div id="headerLogo" class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 font-black text-xl shadow-inner">T</div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 id="headerTeamName" class="text-base sm:text-lg font-bold tracking-wide text-white uppercase">Team Manager</h1>
+          <span id="headerCategory" class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40"></span>
+        </div>
+        <p class="text-gray-400 text-xs">Centro de Gestión & Análisis Táctico</p>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS / TABS -->
+    <div id="appNav" class="flex items-center gap-1.5 bg-[#1b0d30] p-1.5 rounded-xl border border-purple-900/60 shadow">
+      <button onclick="switchTab('torneo')" id="tab-torneo" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition">
+        <i class="fa-solid fa-trophy mr-1.5"></i> Tabla & Líderes
+      </button>
+      <button onclick="switchTab('tactica')" id="tab-tactica" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">
+        <i class="fa-solid fa-clipboard-list mr-1.5"></i> Planilla & Pizarra
+      </button>
+      <button onclick="switchTab('profundidad')" id="tab-profundidad" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">
+        <i class="fa-solid fa-layer-group mr-1.5"></i> Tabla de profundidad
+      </button>
+      <button onclick="switchTab('scouting')" id="tab-scouting" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">
+        <i class="fa-solid fa-chart-column mr-1.5"></i> Scouting General
+      </button>
+      <button onclick="switchTab('entrenamientos')" id="tab-entrenamientos" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">
+        <i class="fa-solid fa-dumbbell mr-1.5"></i> Estímulos Semanales
+      </button>
+    </div>
+
+    <!-- BOTONES DE ACCIÓN -->
+    <div id="appActions" class="flex flex-wrap items-center gap-2">
+      <select id="wsSwitcher" onchange="switchWorkspace(this.value)" title="Cambiar de equipo / torneo" class="max-w-[180px] bg-[#110620] border border-purple-800 rounded-lg px-2 py-1.5 text-xs font-bold text-emerald-300 focus:outline-none cursor-pointer"></select>
+      <button onclick="showWelcome()" title="Agregar otro equipo o torneo" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-900/70 hover:bg-purple-800 text-purple-200 border border-purple-700/70 transition shadow">
+        <i class="fa-solid fa-plus"></i> Nuevo
+      </button>
+      <label class="cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-slate-950 transition flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Cargar planillas
+        <input type="file" id="batchMatchesInput" multiple accept=".xlsx,.xls,.zip" class="hidden" onchange="handleBatchMatches(event)">
+      </label>
+      <button onclick="exportBackup()" title="Descargar respaldo de este equipo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#22123d] hover:bg-[#2e1952] text-gray-200 border border-purple-800/80 transition shadow">
+        <i class="fa-solid fa-download mr-1"></i> Respaldo
+      </button>
+      <button onclick="openSettings()" title="Ajustes" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#22123d] hover:bg-[#2e1952] text-gray-200 border border-purple-800/80 transition shadow">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 p-3 sm:p-4 overflow-y-auto">
+
+    <!-- BIENVENIDA / EQUIPO NUEVO -->
+    <section id="view-welcome" class="hidden max-w-2xl mx-auto w-full space-y-4 py-4">
+      <div class="fm-card rounded-2xl p-6 shadow-2xl border border-purple-800/80 space-y-4">
+        <div>
+          <h2 class="text-xl font-black text-white uppercase tracking-wider">Armá tu equipo</h2>
+          <p class="text-xs text-gray-400 mt-1">Subí las planillas de partido del torneo (las estadísticas en Excel de CABB, sueltas o en un .zip). La app arma la tabla, el scouting de todos los rivales y el plantel del equipo que elijas. Sirve para cualquier categoría o torneo.</p>
+        </div>
+        <label class="block cursor-pointer text-center px-4 py-6 rounded-xl border-2 border-dashed border-emerald-500/60 hover:bg-emerald-950/20 transition">
+          <i class="fa-solid fa-file-excel text-2xl text-emerald-400"></i>
+          <div class="text-sm font-bold text-white mt-2">1. Elegí las planillas (.xlsx o .zip)</div>
+          <div class="text-[11px] text-gray-400">Podés seleccionar muchas a la vez</div>
+          <input type="file" id="welcomeFileInput" multiple accept=".xlsx,.xls,.zip" class="hidden" onchange="handleWelcomeFiles(event)">
+        </label>
+        <div id="welcomeStatus" class="text-xs text-amber-300 whitespace-pre-line"></div>
+
+        <div id="welcomeStep2" class="hidden space-y-3 border-t border-purple-900/60 pt-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Nombre del torneo</label>
+              <input id="wName" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+            </div>
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Categoría (ej: U17 Femenino)</label>
+              <input id="wCategory" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+            </div>
+          </div>
+          <div>
+            <div class="text-[11px] text-gray-400 mb-1.5">2. ¿Cuál es tu equipo?</div>
+            <div id="wTeams" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-64 overflow-y-auto"></div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button onclick="cancelWelcome()" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 text-xs font-bold">Cancelar</button>
+            <button onclick="createFromWelcome()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">Crear mi equipo</button>
+          </div>
+        </div>
+
+        <div id="welcomeExisting"></div>
+        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-purple-900/60 pt-3 text-xs">
+          <label class="cursor-pointer text-purple-300 hover:text-white font-semibold"><i class="fa-solid fa-upload mr-1"></i> Restaurar un respaldo (.json)
+            <input type="file" accept=".json,application/json" class="hidden" onchange="importBackupFile(event)">
+          </label>
+          <button id="welcomeBack" onclick="cancelWelcome()" class="hidden text-gray-400 hover:text-white font-semibold">Volver</button>
+        </div>
+        <p class="text-[10px] text-gray-500">Tus datos se guardan solo en este dispositivo (navegador). Hacé un respaldo de vez en cuando para pasarlos a otro.</p>
+      </div>
+    </section>
+
+    <div id="appViews">
+
+    <!-- PESTAÑA 0: TABLA DE POSICIONES & TOP PERFORMERS -->
+    <div id="view-torneo" class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between bg-[#150c24] p-3 rounded-2xl border border-purple-900/70 gap-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-gray-400">Torneo:</span>
+          <span id="torneoNameDisplay" class="text-sm font-black text-white uppercase tracking-wider"></span>
+        </div>
+        <div id="torneoRules" class="text-xs"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- TABLA DE POSICIONES -->
+        <div class="lg:col-span-8 fm-card rounded-2xl p-4 shadow-xl">
+          <div class="flex items-center justify-between mb-3 border-b border-purple-900/60 pb-2">
+            <h2 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-list-ol text-emerald-400"></i> Tabla de Posiciones
+            </h2>
+            <div class="flex items-center gap-2 text-[11px] text-gray-400">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span id="playoffLegend"></span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="text-[11px] text-gray-400 uppercase border-b border-purple-900/80 bg-[#110720]/80">
+                  <th class="py-2 px-2 text-center w-8">Pos</th>
+                  <th class="py-2 px-3">Equipo</th>
+                  <th class="py-2 px-2 text-center font-bold">PJ</th>
+                  <th class="py-2 px-2 text-center text-emerald-400 font-bold">PG</th>
+                  <th class="py-2 px-2 text-center text-red-400 font-bold">PP</th>
+                  <th class="py-2 px-2 text-center text-gray-300 font-semibold">GF</th>
+                  <th class="py-2 px-2 text-center text-gray-400 font-semibold">GC</th>
+                  <th class="py-2 px-2 text-center font-bold">DIF</th>
+                  <th class="py-2 px-3 text-center text-emerald-400 font-black text-sm">PTS</th>
+                  <th class="py-2 px-3 text-center">Racha</th>
+                </tr>
+              </thead>
+              <tbody id="standingsTableBody" class="divide-y divide-purple-950/60 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HISTORIAL DE PARTIDOS Y PROMEDIOS -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="fm-card rounded-2xl p-4 shadow-xl">
+            <div class="flex items-center justify-between mb-3 border-b border-purple-900/60 pb-2">
+              <h3 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-calendar-check text-blue-400"></i> Partidos Registrados (<span id="matchesCountDisplay">0</span>)
+              </h3>
+              <span class="text-[10px] text-gray-400">Cargá planillas para sumar</span>
+            </div>
+            <div id="matchesHistoryList" class="space-y-2 max-h-[300px] overflow-y-auto pr-1"></div>
+          </div>
+
+          <div class="fm-card rounded-2xl p-4 shadow-xl">
+            <h3 class="text-xs font-black text-white uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-pie text-purple-400"></i> Ritmo & Posesión del Torneo
+            </h3>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/50">
+                <div class="text-gray-400 text-[10px] uppercase font-semibold">Ritmo Promedio</div>
+                <div class="text-base font-black text-emerald-400" id="leagueAvgPace">-</div>
+                <div class="text-[9px] text-gray-500">plays por equipo y partido</div>
+              </div>
+              <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/50">
+                <div class="text-gray-400 text-[10px] uppercase font-semibold">PPP Torneo</div>
+                <div class="text-base font-black text-blue-400" id="leagueAvgPPP">-</div>
+                <div class="text-[9px] text-gray-500">pts por play</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP PERFORMERS (PROMEDIOS POR PARTIDO) -->
+      <div class="fm-card rounded-2xl p-4 shadow-2xl">
+        <div class="flex items-center justify-between mb-4 border-b border-purple-900/60 pb-2">
+          <div>
+            <h2 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-star text-amber-400"></i> Top Performers del Torneo (Promedios por Partido)
+            </h2>
+            <p id="topPerformersSub" class="text-xs text-gray-400"></p>
+          </div>
+          <span class="text-xs font-bold text-amber-400 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-800">
+            ★ Líderes
+          </span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="topPerformersGrid"></div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 1: TÁCTICA Y PLANILLA DE PARTIDO -->
+    <div id="view-tactica" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="lg:col-span-3 space-y-4">
+        <div class="fm-card rounded-2xl p-4 shadow">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center justify-between">
+            <span><i class="fa-solid fa-sliders mr-1.5"></i> Plan de Juego</span>
+            <span class="text-[10px] text-gray-400 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800">4 EXT / 1 INT</span>
+          </h2>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Esquema Ofensivo</label>
+              <select id="tacticalStyle" onchange="updateCourtPositions()" class="w-full bg-[#110720] border border-purple-800/80 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+                <option value="4out1in">4-Out 1-In</option>
+                <option value="5out">5-Out</option>
+                <option value="horns">Horns</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Ritmo & Posesión</label>
+              <select class="w-full bg-[#110720] border border-purple-800/80 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+                <option>Transición Rápida</option>
+                <option>Control de Posesión y Pase Extra</option>
+                <option>Ataque Agresivo a la Pintura</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Disposición Defensiva</label>
+              <select class="w-full bg-[#110720] border border-purple-800/80 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+                <option>Balance rápido</option>
+                <option>Presión Toda Cancha tras Canasta</option>
+                <option>Zona 1-3-1 media cancha</option>
+                <option>Zona 1-3-1 full court</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="fm-card rounded-2xl p-4 shadow text-xs">
+          <h3 class="font-bold text-gray-300 mb-2.5 uppercase tracking-wider text-[11px] flex items-center justify-between">
+            <span id="teamAvgTitle">Promedios del equipo</span>
+            <span class="text-emerald-400 font-bold" id="recPjDisplay">0 PJ</span>
+          </h3>
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="p-2.5 bg-[#110620] rounded-xl border border-purple-900/50">
+              <div class="text-gray-400 text-[10px] uppercase font-semibold">Puntos / P</div>
+              <div class="text-base font-black text-emerald-400" id="recPtsDisplay">58.4</div>
+            </div>
+            <div class="p-2.5 bg-[#110620] rounded-xl border border-purple-900/50">
+              <div class="text-gray-400 text-[10px] uppercase font-semibold">Plays / P</div>
+              <div class="text-base font-black text-blue-400" id="recPlaysDisplay">72.1</div>
+            </div>
+            <div class="p-2.5 bg-[#110620] rounded-xl border border-purple-900/50">
+              <div class="text-gray-400 text-[10px] uppercase font-semibold">TO% Global</div>
+              <div class="text-base font-black text-amber-400" id="recToDisplay">22.4%</div>
+            </div>
+            <div class="p-2.5 bg-[#110620] rounded-xl border border-purple-900/50">
+              <div class="text-gray-400 text-[10px] uppercase font-semibold">Rebotes / P</div>
+              <div class="text-base font-black text-purple-400" id="recRebDisplay">38.2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIZARRA CON CANCHA INTERACTIVA -->
+      <div class="lg:col-span-5 flex flex-col">
+        <div class="fm-card rounded-2xl p-3.5 shadow flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-2.5 px-1">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-basketball"></i> Pizarra (4 Externas + 1 Interna)
+            </h2>
+            <span class="text-[11px] text-amber-300 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-800/80" id="selectedActionHint">
+              Arrastrá o haz clic en 2 fichas para intercambiar
+            </span>
+          </div>
+          <div class="relative w-full aspect-[4/3] court-bg rounded-xl border-2 border-purple-800/80 overflow-hidden shadow-2xl flex items-center justify-center" id="courtContainer">
+            <svg class="absolute inset-0 w-full h-full stroke-purple-400/30 fill-none" viewBox="0 0 400 300" preserveAspectRatio="none">
+              <rect x="15" y="15" width="370" height="270" stroke-width="2" />
+              <line x1="15" y1="285" x2="385" y2="285" stroke-width="2" />
+              <path d="M 160 285 A 40 40 0 0 1 240 285" stroke-width="2" />
+              <rect x="140" y="15" width="120" height="125" stroke-width="2" />
+              <path d="M 140 140 A 60 60 0 0 0 260 140" stroke-width="2" />
+              <path d="M 140 140 A 60 60 0 0 1 260 140" stroke-width="1.5" stroke-dasharray="4,4" />
+              <path d="M 175 40 A 25 25 0 0 0 225 40" stroke-width="1.5" />
+              <line x1="170" y1="25" x2="230" y2="25" stroke-width="3" stroke="#e2e8f0" />
+              <circle cx="200" cy="35" r="9" stroke-width="2" stroke="#f97316" />
+              <path d="M 45 15 L 45 75 A 155 155 0 0 0 355 75 L 355 15" stroke-width="2" />
+            </svg>
+            <div id="courtTokens" class="absolute inset-0 pointer-events-auto"></div>
+          </div>
+          <div class="mt-2.5 text-center text-[11px] text-gray-400 flex items-center justify-around bg-[#110620] p-2.5 rounded-xl border border-purple-900/50">
+            <span><i class="fa-solid fa-circle text-emerald-400 text-[8px] mr-1"></i> Titular</span>
+            <span><i class="fa-solid fa-plus text-red-500 mr-1"></i> Lesionada</span>
+            <span><i class="fa-solid fa-ban text-gray-500 mr-1"></i> Inactiva</span>
+            <span class="text-purple-300 font-semibold">Toca o arrastra para cambiar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLANILLA DE 12 CITADAS Y RESERVA EN FORMATO TABLA -->
+      <div class="lg:col-span-4 flex flex-col space-y-3">
+        <div class="fm-card rounded-2xl p-3.5 shadow flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-users"></i> Planilla de Partido
+              </h2>
+              <p class="text-[11px] text-gray-400">
+                <span class="text-emerald-400 font-bold" id="matchSquadCount">12</span> citadas (<span id="starterCount">5</span> titulares)
+              </p>
+            </div>
+            <span class="text-[10px] bg-purple-950 text-purple-300 font-bold px-2 py-0.5 rounded border border-purple-800">
+              Planilla de partido
+            </span>
+          </div>
+          <div class="overflow-y-auto max-h-[560px] pr-1">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="text-[10px] text-gray-400 uppercase border-b border-purple-900/60 pb-1">
+                  <th class="py-1">Jugadora</th>
+                  <th class="py-1 text-center">Pos</th>
+                  <th class="py-1 text-center">Min</th>
+                  <th class="py-1 text-center font-bold text-emerald-400">Pts</th>
+                  <th class="py-1 text-center">Plays</th>
+                  <th class="py-1 text-center">TO%</th>
+                  <th class="py-1 text-center">Estado</th>
+                  <th class="py-1 text-right">Rol</th>
+                </tr>
+              </thead>
+              <tbody id="rosterTableBody" class="divide-y divide-purple-950/60"></tbody>
+            </table>
+
+            <!-- NO CONVOCADAS / RESERVA EN FORMATO TABLA ALINEADA -->
+            <div class="mt-4 pt-3 border-t border-purple-900/80">
+              <div class="flex items-center justify-between cursor-pointer py-1 mb-2" onclick="toggleReserves()">
+                <span class="text-[11px] font-bold text-purple-300 uppercase flex items-center gap-1.5">
+                  <i class="fa-solid fa-chevron-down text-[10px] transition-transform" id="reserveChevron"></i>
+                  Plantel No Convocado / Reserva (<span id="reserveCount">9</span>)
+                </span>
+                <span class="text-[10px] text-gray-400">Clic para convocar</span>
+              </div>
+              <div id="reserveListContainer">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="text-[10px] text-gray-400 uppercase border-b border-purple-900/60 pb-1">
+                      <th class="py-1">Jugadora</th>
+                      <th class="py-1 text-center">Pos</th>
+                      <th class="py-1 text-center">Min</th>
+                      <th class="py-1 text-center font-bold text-emerald-400">Pts</th>
+                      <th class="py-1 text-center">Plays</th>
+                      <th class="py-1 text-center">TO%</th>
+                      <th class="py-1 text-center">Estado</th>
+                      <th class="py-1 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reserveTableBody" class="divide-y divide-purple-950/60"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 2: TABLA U20 (PG - SG - SF - PF - C) -->
+    <div id="view-profundidad" class="hidden">
+      <div class="fm-card rounded-2xl p-4 shadow">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4 border-b border-purple-900/60 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-white uppercase tracking-wider">Tabla de Profundidad</h2>
+            <p class="text-xs text-gray-400">Cada jugadora aparece una única vez en su puesto. Puedes arrastrarla libremente para cambiarla de columna y orden de rotación (#1, #2, #3...).</p>
+          </div>
+          <span id="depthTeamBadge" class="px-2.5 py-1 rounded-lg text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold"></span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3" id="depthChartGrid"></div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 3: SCOUTING GENERAL & PRÓXIMO RIVAL -->
+    <div id="view-scouting" class="hidden space-y-4">
+      
+      <!-- SCOUTING DEL PRÓXIMO RIVAL -->
+      <div class="fm-card rounded-2xl p-5 shadow-2xl border border-purple-800/80">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-purple-900/60">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl p-2 rounded-xl bg-purple-950 border border-purple-800">🎯</span>
+            <div>
+              <h2 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">Plan de Partido: Scouting Próximo Rival</h2>
+              <p class="text-xs text-gray-400">Seleccioná a qué equipo enfrentamos para generar el informe táctico y emparejamientos defensivos automáticos.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-gray-300">Próximo Rival:</label>
+            <select id="scoutNextOpponentSelect" onchange="renderOpponentScouting(this.value)" class="bg-[#110620] border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 focus:outline-none cursor-pointer"></select>
+          </div>
+        </div>
+
+        <div id="opponentScoutingReportContainer" class="space-y-4"></div>
+      </div>
+
+      <!-- TABLA GENERAL DE LA LIGA -->
+      <div class="fm-card rounded-2xl p-5 shadow-2xl">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-2xl">📊</span>
+          <div>
+            <h2 class="text-xl font-bold text-white tracking-wide">Tabla de Estadísticas del Torneo</h2>
+            <p id="scoutingSubtitle" class="text-xs text-gray-400"></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1.5">Filtrar por Equipo:</label>
+            <div class="relative">
+              <select id="scoutTeamFilter" onchange="renderScoutingTable()" class="w-full bg-[#110720] border border-purple-800 rounded-xl px-3.5 py-2.5 text-xs text-white appearance-none focus:outline-none focus:border-blue-500">
+                <option value="ALL">TODOS LOS EQUIPOS</option>
+              </select>
+              <i class="fa-solid fa-chevron-down absolute right-3.5 top-3.5 text-gray-400 pointer-events-none text-xs"></i>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1.5">Buscar Jugadora/Jugador por Nombre:</label>
+            <div class="relative">
+              <input type="text" id="scoutSearch" oninput="renderScoutingTable()" placeholder="Escribe apellido o nombre..." class="w-full bg-[#110720] border border-purple-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500">
+              <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3.5 text-gray-500 text-xs"></i>
+            </div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-gray-300 mb-2">Seleccionar columnas visibles:</label>
+          <div class="flex flex-wrap items-center gap-1.5 bg-[#10061e] p-2.5 rounded-xl border border-purple-900/60" id="columnTagsContainer"></div>
+        </div>
+        <div class="text-xs text-gray-400 mb-3 flex items-center justify-between">
+          <span>Mostrando <b class="text-white" id="scoutingRecordCount">0</b> registros con <b class="text-white" id="scoutingColCount">14</b> columnas seleccionadas.</span>
+          <span class="text-[11px] text-gray-500">Haz clic en cualquier columna para ordenar</span>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-purple-900/60 max-h-[620px]">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="sticky top-0 bg-[#160a29] text-[11px] text-gray-300 uppercase border-b border-purple-900 shadow" id="scoutingThead"></thead>
+            <tbody id="scoutingTableBody" class="divide-y divide-purple-950/70 bg-[#110620]"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 4: ESTÍMULOS SEMANALES & ASISTENCIAS -->
+    <div id="view-entrenamientos" class="hidden space-y-4">
+      <div class="fm-card rounded-2xl p-5 shadow-2xl border border-purple-800/80">
+        
+        <!-- CABECERA CON SELECTOR DE SEMANA, FILTRO DE CATEGORÍA Y RESUMEN -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-purple-900/60">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl p-2 rounded-xl bg-purple-950 border border-purple-800">⚡</span>
+            <div>
+              <h2 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">Control de Estímulos Semanales</h2>
+              <p id="trainingRule" class="text-xs text-gray-400"></p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- FILTRO DE CATEGORÍA -->
+            <label class="text-xs font-bold text-gray-300">Filtrar:</label>
+            <select id="trainingCatFilterSelect" onchange="handleTrainingCatFilterChange(this.value)" class="bg-[#110620] border border-purple-800 rounded-xl px-2.5 py-1.5 text-xs font-bold text-blue-300 focus:outline-none cursor-pointer">
+              <option value="MAIN">Plantel principal (exigibles)</option>
+              <option value="OTHER">Juegan en otra categoría</option>
+              <option value="ALL">Todas las jugadoras</option>
+            </select>
+
+            <label class="text-xs font-bold text-gray-300 ml-2">Semana:</label>
+            <select id="trainingWeekSelect" onchange="handleTrainingWeekChange(this.value)" class="bg-[#110620] border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 focus:outline-none cursor-pointer">
+              <option value="Semana 1">Semana 1</option>
+            </select>
+            <button onclick="createNewTrainingWeek()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow transition flex items-center gap-1">
+              <i class="fa-solid fa-plus"></i> Nueva Semana
+            </button>
+            <button onclick="clearCurrentWeekEstimulos()" class="px-2.5 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-800 text-xs shadow transition" title="Reiniciar semana actual">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- PASTILLAS DE RESUMEN COLECTIVO -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div class="bg-[#110620] p-3 rounded-xl border border-purple-900/60 text-xs">
+            <span class="text-gray-400 font-bold uppercase text-[10px]">Jugadoras con piso cumplido</span>
+            <div class="text-base font-black text-emerald-400 mt-0.5" id="trainingStatsCumplieron">0 / 21 (0%)</div>
+          </div>
+          <div class="bg-[#110620] p-3 rounded-xl border border-purple-900/60 text-xs">
+            <span class="text-gray-400 font-bold uppercase text-[10px]">Promedio de Estímulos del Plantel</span>
+            <div class="text-base font-black text-blue-400 mt-0.5" id="trainingStatsAvg">0.0 turnos / jugadora</div>
+          </div>
+          <div class="bg-[#110620] p-3 rounded-xl border border-purple-900/60 text-xs">
+            <span class="text-gray-400 font-bold uppercase text-[10px]">Guía de Uso Rápido</span>
+            <div class="text-gray-300 text-[11px] mt-0.5">
+              1 toque = <b>1 turno</b> (verde) • 2 toques = <b>Doble turno</b> (violeta) • 3 toques = <b>Triple turno</b> (dorado)
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLA DE JUGADORAS (LUNES A VIERNES) -->
+        <div class="overflow-x-auto rounded-xl border border-purple-900/60">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="text-[11px] text-gray-300 uppercase bg-[#160a29] border-b border-purple-900">
+                <th class="py-2.5 px-3">Jugadora</th>
+                <th class="py-2 px-1 text-center w-12">LUN</th>
+                <th class="py-2 px-1 text-center w-12">MAR</th>
+                <th class="py-2 px-1 text-center w-12">MIÉ</th>
+                <th class="py-2 px-1 text-center w-12">JUE</th>
+                <th class="py-2 px-1 text-center w-12">VIE</th>
+                <th class="py-2 px-2 text-center w-24">Total</th>
+                <th class="py-2 px-3 text-center w-28">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="trainingTableBody" class="divide-y divide-purple-950/70 bg-[#110620]"></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <!-- MODAL DE JUGADORA ACTUALIZADO CON SELECTOR DE CATEGORÍA -->
+  <div id="playerModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="fm-card rounded-2xl w-full max-w-lg p-5 border border-purple-700 shadow-2xl space-y-4">
+      
+      <!-- ENCABEZADO CON EDICIÓN DE DORSAL, CATEGORÍA Y POSICIÓN -->
+      <div class="flex items-center justify-between border-b border-purple-900 pb-3">
+        <div class="flex items-center gap-3">
+          <div id="modalDorsalCircle" class="w-12 h-12 rounded-full bg-emerald-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-lg flex-shrink-0">
+            #17
+          </div>
+          <div>
+            <h3 id="modalPlayerName" class="text-base font-bold text-white tracking-wide">DE LUCA DE REGE, MALENA</h3>
+            <div class="flex items-center gap-2 mt-1">
+              <label class="text-[11px] text-gray-400">Puesto:</label>
+              <select id="modalEditPos" onchange="updatePlayerPosFromModal(this.value)" class="bg-[#110620] border border-purple-800 rounded px-1.5 py-0.5 text-xs text-emerald-400 font-bold focus:outline-none focus:border-emerald-400">
+                <option value="PG">PG (Base)</option>
+                <option value="SG">SG (Escolta)</option>
+                <option value="SF">SF (Alero)</option>
+                <option value="PF">PF (Ala-Pívot)</option>
+                <option value="C">C (Pívot)</option>
+              </select>
+
+              <!-- SELECTOR DE CATEGORÍA -->
+              <label class="text-[11px] text-gray-400 ml-1.5">Cat:</label>
+              <select id="modalEditCat" onchange="updatePlayerCatFromModal(this.value)" class="bg-[#110620] border border-purple-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold focus:outline-none focus:border-blue-400">
+                <option value="MAIN">Principal</option>
+                <option value="OTHER">Otra categoría</option>
+              </select>
+
+              <label class="text-[11px] text-gray-400 ml-1.5">Camiseta:</label>
+              <input type="number" id="modalEditDorsal" onchange="updatePlayerDorsalFromModal(this.value)" min="0" max="99" class="w-12 bg-[#110620] border border-purple-800 rounded px-1.5 py-0.5 text-xs text-white font-bold text-center focus:outline-none focus:border-emerald-400">
+            </div>
+          </div>
+        </div>
+        <button onclick="closePlayerModal()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+
+      <!-- ESTADO DE DISPONIBILIDAD -->
+      <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/60 flex items-center justify-between">
+        <span class="text-xs text-gray-300 font-semibold">Estado de Disponibilidad:</span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="setPlayerStatusFromModal('ACT')" id="modalStatusACT" class="px-2.5 py-1 rounded text-xs font-bold transition">ACTIVA</button>
+          <button onclick="setPlayerStatusFromModal('INA')" id="modalStatusINA" class="px-2.5 py-1 rounded text-xs font-bold transition">INACTIVA</button>
+          <button onclick="setPlayerStatusFromModal('LES')" id="modalStatusLES" class="px-2.5 py-1 rounded text-xs font-bold transition">+ LESIONADA</button>
+        </div>
+      </div>
+
+      <!-- MÉTRICAS DE TIRO Y REBOTES POR PARTIDO -->
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2 flex items-center justify-between">
+          <span><i class="fa-solid fa-chart-simple mr-1"></i> Tiro & Rebotes (Promedios por Partido)</span>
+          <span class="text-[10px] text-gray-400" id="modalPJDisplay">8 PJ</span>
+        </h4>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <!-- 2PT -->
+          <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Tiros de 2 (2PT)</div>
+            <div class="flex items-baseline justify-between mt-0.5">
+              <span class="text-base font-black text-white" id="modalT2Pct">0%</span>
+              <span class="text-xs text-emerald-400 font-bold" id="modalT2Detail">-</span>
+            </div>
+          </div>
+          <!-- 3PT -->
+          <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Triples (3PT)</div>
+            <div class="flex items-baseline justify-between mt-0.5">
+              <span class="text-base font-black text-white" id="modalT3Pct">0%</span>
+              <span class="text-xs text-emerald-400 font-bold" id="modalT3Detail">-</span>
+            </div>
+          </div>
+          <!-- 1PT (TL) -->
+          <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Tiros Libres (1PT)</div>
+            <div class="flex items-baseline justify-between mt-0.5">
+              <span class="text-base font-black text-white" id="modalT1Pct">0%</span>
+              <span class="text-xs text-emerald-400 font-bold" id="modalT1Detail">-</span>
+            </div>
+          </div>
+          <!-- REBOTES OF / DEF -->
+          <div class="bg-[#110620] p-2.5 rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Rebotes (OF / DEF)</div>
+            <div class="flex items-baseline justify-between mt-0.5">
+              <span class="text-base font-black text-amber-400" id="modalRebTot">0.0</span>
+              <span class="text-xs text-gray-300 font-bold" id="modalRebDetail">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EFICIENCIA & POSESIONES -->
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
+          <i class="fa-solid fa-stopwatch mr-1"></i> Eficiencia & Posesión
+        </h4>
+        <div class="grid grid-cols-4 gap-2 text-center text-xs">
+          <div class="p-2 bg-[#110620] rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold">MIN / P</div>
+            <div class="font-black text-white text-sm mt-0.5" id="modalMin">0'</div>
+          </div>
+          <div class="p-2 bg-[#110620] rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold">PLAYS</div>
+            <div class="font-black text-blue-400 text-sm mt-0.5" id="modalPlays">0.0</div>
+          </div>
+          <div class="p-2 bg-[#110620] rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold">PPP</div>
+            <div class="font-black text-emerald-400 text-sm mt-0.5" id="modalPPP">0.00</div>
+          </div>
+          <div class="p-2 bg-[#110620] rounded-xl border border-purple-900/40">
+            <div class="text-[10px] text-gray-400 font-semibold">TO%</div>
+            <div class="font-black text-rose-400 text-sm mt-0.5" id="modalTO">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-purple-900/60">
+        <button onclick="closePlayerModal()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow">
+          Listo / Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AJUSTES DEL EQUIPO / TORNEO -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="fm-card rounded-2xl w-full max-w-lg p-5 border border-purple-700 shadow-2xl space-y-3 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-purple-900 pb-2">
+        <h3 class="text-base font-bold text-white uppercase tracking-wider">Ajustes</h3>
+        <button onclick="closeSettings()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="col-span-2"><label class="block text-[11px] text-gray-400 mb-1">Nombre del torneo</label><input id="sName" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-emerald-400"></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Categoría</label><input id="sCategory" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-emerald-400"></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Mi equipo</label><select id="sTeam" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-emerald-300 font-bold focus:outline-none"></select></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Puntos por victoria</label><input id="sWin" type="number" min="0" max="9" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Puntos por derrota</label><input id="sLoss" type="number" min="0" max="9" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Equipos que clasifican a playoffs</label><input id="sPlayoff" type="number" min="1" max="32" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
+        <div></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Turnos mínimos por semana</label><input id="sMin" type="number" min="0" max="20" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
+        <div><label class="block text-[11px] text-gray-400 mb-1">Alerta si supera (turnos)</label><input id="sMax" type="number" min="1" max="30" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
+      </div>
+      <div class="flex flex-wrap gap-2 pt-1 text-xs">
+        <button onclick="if(confirm('¿Rearmar el plantel con las reglas por defecto? Se pierden tus cambios de puestos, titulares y citadas.')){closeSettings();autoSetupRoster();}" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 font-bold">Rearmar plantel automático</button>
+        <button onclick="clearAllMatches()" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-amber-300 border border-purple-800 font-bold">Quitar todos los partidos</button>
+        <button onclick="deleteCurrentWorkspace()" class="px-3 py-1.5 rounded-lg bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 font-bold">Borrar este equipo</button>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-purple-900/60">
+        <button onclick="closeSettings()" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 text-xs font-bold">Cancelar</button>
+        <button onclick="saveSettings()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS MODULARES -->
+
+  <script src="js/cabb.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/standings.js"></script>
+  <script src="js/tactics.js"></script>
+  <script src="js/depth.js"></script>
+  <script src="js/scouting.js"></script>
+  <script src="js/import.js"></script>
+  <script src="js/training.js"></script>
+  <script>
+    function switchTab(tab) {
+      ['torneo', 'tactica', 'profundidad', 'scouting', 'entrenamientos'].forEach(t => {
+        const viewEl = document.getElementById('view-' + t);
+        const tabEl = document.getElementById('tab-' + t);
+        if (viewEl) viewEl.classList.add('hidden');
+        if (tabEl) tabEl.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition";
+      });
+
+      const activeView = document.getElementById('view-' + tab);
+      const activeTab = document.getElementById('tab-' + tab);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeTab) activeTab.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition";
+
+      if (tab === 'profundidad') { renderDepthChart(); const b = document.getElementById('depthTeamBadge'); if (b) b.innerText = state.myTeam; }
+      if (tab === 'entrenamientos') renderTrainingTable();
+      if (tab === 'scouting') {
+        renderScoutingTable();
+        const oppSelect = document.getElementById('scoutNextOpponentSelect');
+        const rivalVal = oppSelect ? oppSelect.value : '';
+        if (typeof renderOpponentScouting === 'function') {
+          renderOpponentScouting(rivalVal);
+        }
+      }
+      if (tab === 'tactica') {
+        renderRosterTable();
+        updateCourtPositions();
+      }
+      if (tab === 'torneo') {
+        renderStandings();
+        renderMatchesHistory();
+        renderTopPerformers();
+      }
+    }
+
+    window.onload = () => { initData(); };
+  </script>
+</body>
+</html>
