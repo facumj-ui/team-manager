@@ -204,7 +204,13 @@
     </div>
 
     <!-- PESTAÑA 1: TÁCTICA Y PLANILLA DE PARTIDO -->
-    <div id="view-tactica" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div id="view-tactica" class="hidden space-y-3">
+    <div class="inline-flex gap-1 p-1 rounded-xl bg-[#110620] border border-purple-900/60">
+      <button id="tvMain" onclick="setTacticaView('main')" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition">Plantel y pizarra</button>
+      <button id="tvEval" onclick="setTacticaView('eval')" class="px-4 py-1.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition">Evaluaciones</button>
+    </div>
+    <div id="tacticaEval" class="hidden"><div id="evalPanel"></div></div>
+    <div id="tacticaMain" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
       <div class="lg:col-span-3 space-y-4">
         <div class="fm-card rounded-2xl p-4 shadow">
           <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center justify-between">
@@ -365,6 +371,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- PESTAÑA 2: TABLA U20 (PG - SG - SF - PF - C) -->
     <div id="view-profundidad" class="hidden">
@@ -448,7 +455,7 @@
 
     <!-- MODAL DE JUGADORA ACTUALIZADO CON SELECTOR DE CATEGORÍA -->
   <div id="playerModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-    <div class="fm-card rounded-2xl w-full max-w-lg p-5 border border-purple-700 shadow-2xl space-y-4">
+    <div class="fm-card rounded-2xl w-full max-w-lg p-5 border border-purple-700 shadow-2xl space-y-4 max-h-[94vh] overflow-y-auto">
       
       <!-- ENCABEZADO CON EDICIÓN DE DORSAL, CATEGORÍA Y POSICIÓN -->
       <div class="flex items-center justify-between border-b border-purple-900 pb-3">
@@ -553,12 +560,93 @@
         </div>
       </div>
 
+      <!-- EVALUACIÓN DE CRITERIOS -->
+      <div id="modalEvalBox"></div>
+
       <div class="flex justify-end pt-2 border-t border-purple-900/60">
         <button onclick="closePlayerModal()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow">
           Listo / Cerrar
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- IMPORTAR EVALUACIÓN DE CRITERIOS -->
+  <div id="evalImportModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="fm-card rounded-2xl w-full max-w-2xl p-5 border border-purple-700 shadow-2xl space-y-3 max-h-[94vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-purple-900 pb-2">
+        <h3 class="text-base font-bold text-white uppercase tracking-wider">Importar plantel desde Excel</h3>
+        <button onclick="closeEvalImport()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+      <p class="text-xs text-gray-400">Subí tu Excel con la hoja de criterios (Categoría, Apellido, Nombre y una columna por criterio). Se crean las jugadoras del plantel y sus notas pasan a la evaluación actual.</p>
+      <label class="block cursor-pointer text-center px-4 py-4 rounded-xl border-2 border-dashed border-emerald-500/60 hover:bg-emerald-950/20 transition text-sm font-bold text-white">
+        <i class="fa-solid fa-file-excel text-emerald-400 mr-1"></i> Elegir archivo .xlsx
+        <input type="file" id="eiFile" accept=".xlsx,.xls" class="hidden" onchange="handleEvalFile(event)">
+      </label>
+      <div id="eiStatus" class="text-xs text-amber-300 whitespace-pre-line"></div>
+      <div id="eiStep2" class="hidden space-y-3">
+        <div>
+          <div class="text-[11px] text-gray-400 mb-1.5">¿Qué categorías querés importar? Cada jugadora cuenta solo en su categoría original.</div>
+          <div id="eiCats" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div id="eiCritBox" class="bg-[#110620] border border-purple-900/60 rounded-xl p-2.5 text-xs">
+          <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="eiUseCrit" class="accent-emerald-500 mt-0.5"><span class="text-gray-200">Usar los criterios de este Excel <span class="text-gray-400">(<span id="eiCritInfo"></span>)</span>. Las notas ya cargadas se conservan en los criterios que se llaman igual.</span></label>
+        </div>
+        <div class="overflow-x-auto max-h-64 overflow-y-auto">
+          <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-400"><th class="pb-1">Jugadora</th><th class="pb-1">Categoría</th><th class="pb-1">Notas</th><th class="pb-1">Estado</th></tr></thead><tbody id="eiRows"></tbody></table>
+        </div>
+        <p class="text-[11px] text-gray-400">Se importan <b id="eiCount" class="text-white">0</b> jugadoras a <b id="eiPeriod" class="text-emerald-400"></b>.</p>
+        <div class="flex justify-end gap-2 pt-2 border-t border-purple-900/60">
+          <button onclick="closeEvalImport()" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 text-xs font-bold">Cancelar</button>
+          <button onclick="doEvalImport()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">Importar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITOR DE EVALUACIÓN -->
+  <div id="evalEditModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="fm-card rounded-2xl w-full max-w-xl p-5 border border-purple-700 shadow-2xl max-h-[94vh] overflow-y-auto">
+      <div id="evalEditBody" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- AGREGAR JUGADORA AL PLANTEL DE EVALUACIÓN -->
+  <div id="evalPlayerModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="fm-card rounded-2xl w-full max-w-sm p-5 border border-purple-700 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-purple-900 pb-2">
+        <h3 class="text-base font-bold text-white uppercase tracking-wider">Agregar jugadora</h3>
+        <button onclick="closeEvalPlayer()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+      <div class="space-y-2 text-xs">
+        <div><label for="epApe" class="block text-[11px] text-gray-400 mb-1">Apellido</label><input id="epApe" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-emerald-400"></div>
+        <div><label for="epNom" class="block text-[11px] text-gray-400 mb-1">Nombre</label><input id="epNom" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-emerald-400"></div>
+        <div><label for="epCat" class="block text-[11px] text-gray-400 mb-1">Categoría (ej. U17, U21)</label><input id="epCat" list="epCats" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-emerald-400"><datalist id="epCats"></datalist></div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-purple-900/60">
+        <button onclick="closeEvalPlayer()" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 text-xs font-bold">Cancelar</button>
+        <button onclick="saveEvalPlayer()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERÍODO DE EVALUACIÓN -->
+  <div id="evalPeriodModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="fm-card rounded-2xl w-full max-w-sm p-5 border border-purple-700 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-purple-900 pb-2">
+        <h3 id="epTitle" class="text-base font-bold text-white uppercase tracking-wider">Nueva evaluación</h3>
+        <button onclick="closeEvalPeriod()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+      <div class="text-xs"><label for="epLabel" class="block text-[11px] text-gray-400 mb-1">Nombre</label><input id="epLabel" type="text" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-emerald-400"></div>
+      <label id="epCopyBox" class="flex items-start gap-2 text-xs text-gray-200 cursor-pointer"><input type="checkbox" id="epCopy" class="accent-emerald-500 mt-0.5"><span>Empezar con las notas de la evaluación actual como base (después las ajustás)</span></label>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-purple-900/60">
+        <button id="epDelete" onclick="deleteEvalPeriod()" class="text-[11px] text-red-300 hover:text-red-200 font-semibold">Borrar este período</button>
+        <div class="flex gap-2 ml-auto">
+          <button onclick="closeEvalPeriod()" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 text-xs font-bold">Cancelar</button>
+          <button onclick="saveEvalPeriod()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">Guardar</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -576,7 +664,7 @@
         <div><label class="block text-[11px] text-gray-400 mb-1">Puntos por victoria</label><input id="sWin" type="number" min="0" max="9" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
         <div><label class="block text-[11px] text-gray-400 mb-1">Puntos por derrota</label><input id="sLoss" type="number" min="0" max="9" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
         <div><label class="block text-[11px] text-gray-400 mb-1">Equipos que clasifican a playoffs</label><input id="sPlayoff" type="number" min="1" max="32" class="w-full bg-[#110720] border border-purple-800 rounded-lg px-2.5 py-2 text-white"></div>
-        <div></div>
+        <div class="col-span-2"><label class="block text-[11px] text-gray-400 mb-1">Promedio general de criterios</label><select id="sEvalMode" class="w-full bg-[#110620] border border-purple-800 rounded-lg px-2.5 py-2 text-white focus:outline-none"><option value="all">Promedio de todos los criterios</option><option value="blocks">Promedio de los promedios por bloque</option></select></div>
       </div>
       <div class="flex flex-wrap gap-2 pt-1 text-xs">
         <button onclick="if(confirm('¿Rearmar el plantel con las reglas por defecto? Se pierden tus cambios de puestos, titulares y citadas.')){closeSettings();autoSetupRoster();}" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-800 font-bold">Rearmar plantel automático</button>
@@ -592,6 +680,7 @@
 
   <!-- SCRIPTS MODULARES -->
 
+  <script src="js/eval.js"></script>
   <script src="js/cabb.js"></script>
   <script src="js/data.js"></script>
   <script src="js/standings.js"></script>
@@ -623,6 +712,7 @@
         }
       }
       if (tab === 'tactica') {
+        if (typeof renderEvalPanel === 'function' && !document.getElementById('tacticaEval').classList.contains('hidden')) renderEvalPanel();
         renderRosterTable();
         updateCourtPositions();
       }
