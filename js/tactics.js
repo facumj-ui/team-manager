@@ -69,7 +69,7 @@ function renderRosterTable() {
           ${p.dorsal}
         </span>
         <span class="font-bold text-white truncate max-w-[105px]">${esc(p.name)}</span>
-        
+        ${evalBadgeHtml(p)}
       </td>
       <td class="py-2 text-center font-bold ${p.pos === 'C' ? 'text-amber-400' : 'text-blue-400'}">${p.pos}</td>
       <td class="py-2 text-center text-gray-300 font-semibold">${(p.stats.MIN || 0).toFixed(1)}'</td>
@@ -479,6 +479,7 @@ function openPlayerModal(id) {
   const toPctVal = (typeof s['TO%'] === 'number') ? (s['TO%'] * 100).toFixed(0) : '0';
   document.getElementById('modalTO').innerText = toPctVal + '%';
 
+  renderModalEval(p);
   document.getElementById('playerModal').classList.remove('hidden');
 }
 

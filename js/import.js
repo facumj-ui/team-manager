@@ -227,6 +227,7 @@ function openSettings() {
   const sel = document.getElementById('sTeam');
   sel.innerHTML = state.teams.map(t => `<option value="${esc(t)}" ${t === state.myTeam ? 'selected' : ''}>${esc(t)}</option>`).join('');
   document.getElementById('sWin').value = state.settings.ptsWin;
+  document.getElementById('sEvalMode').value = state.settings.evalAvgMode || 'all';
   document.getElementById('sLoss').value = state.settings.ptsLoss;
   document.getElementById('sPlayoff').value = state.settings.playoffSpots;
     document.getElementById('settingsModal').classList.remove('hidden');
@@ -239,7 +240,8 @@ function saveSettings() {
   state.category = document.getElementById('sCategory').value.trim();
   const newTeam = document.getElementById('sTeam').value;
   state.settings = {
-    ptsWin: num('sWin', 2, 0, 9), ptsLoss: num('sLoss', 1, 0, 9), playoffSpots: num('sPlayoff', 8, 1, 32)
+    ptsWin: num('sWin', 2, 0, 9), ptsLoss: num('sLoss', 1, 0, 9), playoffSpots: num('sPlayoff', 8, 1, 32),
+    evalAvgMode: document.getElementById('sEvalMode').value === 'blocks' ? 'blocks' : 'all'
   };
   const teamChanged = newTeam && newTeam !== state.myTeam;
   if (teamChanged) state.myTeam = newTeam;

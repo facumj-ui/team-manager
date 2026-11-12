@@ -5,12 +5,12 @@
 const LS_INDEX = 'rm2_index';
 const LS_ACTIVE = 'rm2_active';
 const LS_WS = 'rm2_ws_';
-const DEFAULT_SETTINGS = { ptsWin: 2, ptsLoss: 1, playoffSpots: 8, minTurns: 3, maxTurns: 6 };
+const DEFAULT_SETTINGS = { ptsWin: 2, ptsLoss: 1, playoffSpots: 8, minTurns: 3, maxTurns: 6, evalAvgMode: 'all' };
 const DEFAULT_COLS = ['EQUIPO', 'Nombre', 'PJ', 'MIN', 'PTS', 'T2%', 'T3%', 'T1%', 'TC%', 'PLAYS', 'PPP', 'TO%', 'RT', 'AST', 'VAL'];
 
 let state = {
   wsId: null, wsName: '', category: '', myTeam: '', settings: Object.assign({}, DEFAULT_SETTINGS),
-  matches: [], rosterMeta: {}, training: { currentWeek: 'Semana 1', filterCat: 'MAIN', weeks: {} }, nextOpponent: '',
+  matches: [], rosterMeta: {}, criteria: evalDefaultCriteria(), squad: [], evalPeriods: [], evalCurrent: '', training: { currentWeek: 'Semana 1', filterCat: 'MAIN', weeks: {} }, nextOpponent: '',
   // derivados
   roster: [], scoutingData: [], teams: [], standings: [],
   // interfaz
@@ -53,7 +53,8 @@ function serializeWorkspace() {
       id: m.id, home: m.home, away: m.away, homePts: m.homePts, awayPts: m.awayPts, round: m.round || '', date: m.date || '',
       players: (m.players || []).map(CABB.packPlayer)
     })),
-    roster: state.rosterMeta, training: state.training
+    roster: state.rosterMeta, training: state.training, criteria: state.criteria,
+    squad: state.squad, evalPeriods: state.evalPeriods, evalCurrent: state.evalCurrent
   };
 }
 
@@ -80,6 +81,10 @@ function applyWorkspace(ws) {
     players: (m.players || []).map(CABB.unpackPlayer)
   }));
   state.rosterMeta = ws.roster || {};
+  state.squad = Array.isArray(ws.squad) ? ws.squad : [];
+  state.evalPeriods = Array.isArray(ws.evalPeriods) ? ws.evalPeriods : [];
+  state.evalCurrent = ws.evalCurrent || '';
+  state.criteria = (ws.criteria && ws.criteria.blocks && ws.criteria.blocks.length) ? ws.criteria : evalDefaultCriteria();
   state.training = ws.training || {};
   state.selectedSwapId = null;
   state.activeModalPlayerId = null;
@@ -106,7 +111,7 @@ function createWorkspace(opts) {
       id: 'm_' + (i + 1), home: m.home, away: m.away, homePts: m.homePts, awayPts: m.awayPts, round: m.round || '', date: m.date || '',
       players: (m.players || []).map(CABB.packPlayer)
     })),
-    roster: opts.roster || {}, training: opts.training || {}
+    roster: opts.roster || {}, training: opts.training || {}, criteria: opts.criteria || evalDefaultCriteria(), squad: [], evalPeriods: [], evalCurrent: ''
   };
   applyWorkspace(ws);
   saveWorkspace();

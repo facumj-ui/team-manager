@@ -77,7 +77,8 @@
       };
       const col = {
         min: idx('MIN'), pts: idx('PTS'), t2: idx('A/I', 0), t3: idx('A/I', 1), t1: idx('A/I', 2),
-        def: idx('DEF'), of: idx('OF'), reb: idx('Tot.'), ast: idx('AST'), per: idx('PER'), val: idx('VAL')
+        def: idx('DEF'), of: idx('OF'), reb: idx('Tot.'), ast: idx('AST'), per: idx('PER'), val: idx('VAL'),
+        rec: idx('REC'), blk: idx('TC'), fc: idx('FC'), fr: idx('FR'), pm: idx('+/-')
       };
       const faltan = ['min', 'pts', 't2', 't3', 't1', 'reb', 'ast', 'per', 'val'].filter(k => col[k] < 0);
       if (faltan.length) throw new Error('No reconozco las columnas de la planilla (faltan: ' + faltan.join(', ') + ')');
@@ -95,7 +96,9 @@
           name: collapse(c1), num: c0, min: toMin(cell(q, col.min)), pts: toNum(cell(q, col.pts)),
           t2m: t2[0], t2a: t2[1], t3m: t3[0], t3a: t3[1], t1m: t1[0], t1a: t1[1],
           rd: col.def >= 0 ? toNum(cell(q, col.def)) : 0, ro: col.of >= 0 ? toNum(cell(q, col.of)) : 0,
-          reb: toNum(cell(q, col.reb)), ast: toNum(cell(q, col.ast)), to: toNum(cell(q, col.per)), val: toNum(cell(q, col.val))
+          reb: toNum(cell(q, col.reb)), ast: toNum(cell(q, col.ast)), to: toNum(cell(q, col.per)), val: toNum(cell(q, col.val)),
+          rec: col.rec >= 0 ? toNum(cell(q, col.rec)) : null, blk: col.blk >= 0 ? toNum(cell(q, col.blk)) : null,
+          fc: col.fc >= 0 ? toNum(cell(q, col.fc)) : null, fr: col.fr >= 0 ? toNum(cell(q, col.fr)) : null, pm: col.pm >= 0 ? toNum(cell(q, col.pm)) : null
         });
       }
       const sum = players.reduce((a, p) => a + p.pts, 0);
@@ -118,7 +121,7 @@
   }
 
   // Formato compacto para guardar en el navegador.
-  const FIELDS = ['team', 'name', 'num', 'min', 'pts', 't2m', 't2a', 't3m', 't3a', 't1m', 't1a', 'rd', 'ro', 'reb', 'ast', 'to', 'val'];
+  const FIELDS = ['team', 'name', 'num', 'min', 'pts', 't2m', 't2a', 't3m', 't3a', 't1m', 't1a', 'rd', 'ro', 'reb', 'ast', 'to', 'val', 'rec', 'blk', 'fc', 'fr', 'pm'];
   const packPlayer = p => FIELDS.map(f => p[f]);
   const unpackPlayer = a => { const o = {}; FIELDS.forEach((f, i) => { o[f] = a[i]; }); return o; };
 
@@ -135,10 +138,12 @@
         let a = map.get(k);
         if (!a) {
           a = { team: p.team, name: collapse(p.name), key: normName(p.name), pj: 0, nums: {},
-            min: 0, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, t1m: 0, t1a: 0, rd: 0, ro: 0, reb: 0, ast: 0, to: 0, val: 0 };
+            min: 0, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, t1m: 0, t1a: 0, rd: 0, ro: 0, reb: 0, ast: 0, to: 0, val: 0,
+            rec: 0, blk: 0, fc: 0, fr: 0, extPJ: 0 };
           map.set(k, a);
         }
         a.pj++;
+        if (p.rec != null) { a.extPJ++; a.rec += +p.rec || 0; a.blk += +p.blk || 0; a.fc += +p.fc || 0; a.fr += +p.fr || 0; }
         ['min', 'pts', 't2m', 't2a', 't3m', 't3a', 't1m', 't1a', 'rd', 'ro', 'reb', 'ast', 'to', 'val'].forEach(f => { a[f] += (+p[f] || 0); });
         if (p.num !== '' && p.num != null) a.nums[p.num] = (a.nums[p.num] || 0) + 1;
       });
@@ -156,6 +161,7 @@
         'T2%': div(a.t2m, a.t2a), 'T3%': div(a.t3m, a.t3a), 'T1%': div(a.t1m, a.t1a), 'TC%': div(fgm, fga),
         PLAYS: plays / a.pj, PPP: div(a.pts, plays), 'TO%': div(a.to, plays),
         RT: a.reb / a.pj, AST: a.ast / a.pj, VAL: a.val / a.pj,
+        MINT: a.min, TO: a.to, REC_T: a.rec, BLK_T: a.blk, FC_T: a.fc, FR_T: a.fr, EXTPJ: a.extPJ,
         T2C: a.t2m, T2I: a.t2a, T3C: a.t3m, T3I: a.t3a, T1C: a.t1m, T1I: a.t1a, RO: a.ro, RD: a.rd
       });
     });
